@@ -1,0 +1,6 @@
+services:
+  - type: cron
+    name: ibapi-scraper
+    schedule: "0 8 * * *"
+    command: "python scrape_ibapi.py"
+    env: python
