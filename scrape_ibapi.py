@@ -1,9 +1,8 @@
-# scrape_ibapi.py
-
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
+from google.cloud import firestore
 from datetime import datetime
+import os
 
 def scrape_ibapi():
     print("🔍 Scraping IBAPI...")
@@ -25,17 +24,27 @@ def scrape_ibapi():
     for row in rows:
         cols = row.find_all("td")
         if len(cols) >= 10:
-            data.append({
-                "Property Title": cols[0].text.strip(),
+            item = {
+                "PropertyTitle": cols[0].text.strip(),
                 "Bank": cols[1].text.strip(),
                 "City": cols[2].text.strip(),
                 "State": cols[3].text.strip(),
                 "Pincode": cols[4].text.strip(),
-                "Auction Date": cols[5].text.strip(),
-                "Details URL": "https://ibapi.in/" + cols[9].find("a")["href"] if cols[9].find("a") else ""
-            })
+                "AuctionDate": cols[5].text.strip(),
+                "DetailsURL": "https://ibapi.in/" + cols[9].find("a")["href"] if cols[9].find("a") else "",
+                "scraped_at": datetime.utcnow().isoformat()
+            }
+            data.append(item)
 
-    df = pd.DataFrame(data)
-    filename = f"properties_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    df.to_csv(filename, index=False)
-    print(f"✅ Saved {len(df)} listings to {filename}")
+    # Firestore: connect
+    db = firestore.Client()
+
+    for item in data:
+        # Unique document ID based on URL or property title
+        doc_id = item["DetailsURL"].split('=')[-1] if item["DetailsURL"] else item["PropertyTitle"].replace(" ", "_")
+        db.collection("properties").document(doc_id).set(item)
+
+    print(f"✅ Uploaded {len(data)} properties to Firestore.")
+
+if __name__ == "__main__":
+    scrape_ibapi()
