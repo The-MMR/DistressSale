@@ -1,12 +1,10 @@
-# firebase.py
-import json
 import os
-import firebase_admin
-from firebase_admin import credentials, firestore
+import json
+from firebase_admin import credentials, initialize_app, firestore
 
-# For local dev (if you're using a firebase-key.json file)
 def init_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate("firebase-key.json")
-        firebase_admin.initialize_app(cred)
+        key_dict = json.loads(os.environ["FIREBASE_KEY"])
+        cred = credentials.Certificate(key_dict)
+        initialize_app(cred)
     return firestore.client()
